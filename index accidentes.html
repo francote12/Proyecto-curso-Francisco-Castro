@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mapa para proyecto de accidentes de tránsito</title>
+
+    <meta charset="UTF-8" />
+	
+    <!-- Referencia a estilos personales -->
+    <link rel="stylesheet" href="css/estilos.css">
+
+    <!-- Referencia al código fuente y a los estilos de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js" integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log==" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ==" crossorigin=""/>
+	  
+    <!-- Referencia al código fuente y a los estilos del complemento MousePosition -->	 
+    <script type="text/javascript" src="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.js"></script>
+    <link rel="stylesheet" href="https://cdn.rawgit.com/ardhi/Leaflet.MousePosition/master/src/L.Control.MousePosition.css"/>	  
+  
+  
+  
+  
+  
+  </head>
+
+  <body>
+   <nav>
+      <a href="index.html">Principal</a> |
+      <a href="Imagenes.html">Fotos</a> |
+      Mapa|
+ 
+  </nav>
+  
+    <h1>Accidentes del cantón de Grecia </h1>
+    <div id='map'></div>
+
+    <script src="js/distritos.js" type="text/javascript"></script>
+    <script src="js/accidentes.js"  type="text/javascript"></script>
+
+		  <!-- Referencia al complemento Leaflet-providers -->	 
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-providers/1.1.7/leaflet-providers.js"></script>
+	
+	
+    <script>
+      var mapa = L.map('map').setView([10.22, -84.25], 11);
+      var osm  = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        attribution: '<a href="http://www.openstreetmap.org/">OpenStreetMap</a>'
+      });
+      osm.addTo(mapa);
+
+	// Aqui agrego la capa base Topografia de OSM
+	  var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+	maxZoom: 17,
+	attribution: 'Map data: &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+});
+	    
+	  topo.addTo(mapa);
+
+	  	  // Aqui agrego la capa base Banco y negro de OSM
+	  var osmbn = L.tileLayer('http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
+	maxZoom: 18,
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+});	
+	  
+	  
+	  
+// Se agrega el servicio mws de red vial
+var redvial = L.tileLayer.wms('http://geos.snitcr.go.cr/be/IGN_MOPT/wms?', {
+    layers: 'red_vial_nacional'
+}).addTo(mapa);
+	   
+	       // Se agrega el servicio wms de escuelas 
+var escuelas = L.tileLayer.wms('http://sig.mep.go.cr/sigmep/services/Centros_Educativos/CentrosEducativos_CR/MapServer/WMSServer?', {
+    layers: '0'
+}).addTo(mapa);
+
+	 
+      // retorna un color con base en la cantidad de especies
+      function color(d) {
+	return d > 26000 ? '#003d99' :
+	       d > 3000 ? '#1a75ff' :
+	       d > 2500 ? '#99b3ff' :
+		   d > 1300 ? '#b3d1ff' :
+	     	        ' #e6f0ff';
+      }	    
+      
+	  // Aqui coloco las etiqutas del cantón 
+	  function infocanton(feature, layer) {
+	var popupContent = " ";
+	
+	if (feature.properties && feature.properties.ha) {
+	  popupContent +="Área Ha: "+ feature.properties.ha;
+	  }
+	
+	if (feature.properties && feature.properties.NOM_DIST) {
+	  popupContent +="<br> Distrito: "+  feature.properties.NOM_DIST;
+	} 
+	else {
+	  popupContent += 0; 
+	}
+	layer.bindPopup(popupContent);
+      }	    	    
+	  // Aqui coloco los colores para cada mapa de acuerdo a la funcion color 8d)n   
+      var area = L.geoJson(distritos, {
+        style: function (feature) {
+	  return {
+	    weight: 2,
+	    opacity: 1,
+	    color: 'white',
+	    dashArray: '3',
+	    fillOpacity: 0.7,		  
+            fillColor: color(feature.properties.ha)
+          };
+        },
+	      
+	        onEachFeature: infocanton
+      })
+      area.addTo(mapa);
+	    
+	    
+        
+      function infoPresencia(feature, layer) {
+	var popupContent = "";
+	if (feature.properties && feature.properties.tipo) {
+	  popupContent += feature.properties.tipo;
+	}
+	layer.bindPopup(popupContent);
+      }	    
+	    
+	    
+      registrosPresencia = L.geoJson(regacc, {
+        style: function (feature) {
+	  return {
+            fillColor: '#ff0000', 
+            color: '#ffffff'
+          };
+        },
+        
+	pointToLayer: function (feature, latlng) {
+	  return L.circleMarker(latlng, {
+	    radius: 3,
+	    fillColor: "#ff7800",
+	    color: "#000",
+	    weight: 1,
+	    opacity: 1,
+	    fillOpacity: 0.8
+	  });
+	},
+	      
+	onEachFeature: infoPresencia
+      }),
+      registrosPresencia.addTo(mapa);	    
+	        
+	    
+      var baseLayers = {
+	    "OpenStreetMap": osm,
+		"TopoOSM": topo,
+		"OSM Blanco y Negro" : osmbn,
+		"Escuelas": escuelas,
+		"Red vial Nacional": redvial
+      };
+	  
+
+	  
+	  
+      var overlays = {
+	    "Cantòn": area,
+	    "Accidentes": registrosPresencia
+      };
+      L.control.layers(baseLayers, overlays).addTo(mapa);
+	    
+      L.control.mousePosition().addTo(mapa);
+	  L.control.scale().addTo(mapa);
+
+    </script>
+  </body>
+</html>
